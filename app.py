@@ -3,6 +3,9 @@ import sqlite3
 from flask_cors import CORS, cross_origin
 import os
 import time
+import docker
+
+client = docker.from_env()
 
 def get_db_connection():
     conn = sqlite3.connect('tmp/x-ui.db')
@@ -11,7 +14,15 @@ def get_db_connection():
 
 def update_db():
     DB_PATH = "/etc/x-ui/x-ui.db"
-    os.system(f"cp {DB_PATH} tmp/x-ui.db")
+    # Get the container object
+    container = client.containers.get("x-ui-flask")
+
+    # Copy the file from the host to the container
+    container.put_archive('/app/tmp/x-ui.db', DB_PATH)
+
+    # Verify that the file has been copied
+    container.exec_run(f'ls /app/tmp/x-ui.db')
+    # os.system(f"cp {DB_PATH} tmp/x-ui.db")
 
     with open('db_update_time', 'w') as f:
         f.write(str(int(time.time())))
